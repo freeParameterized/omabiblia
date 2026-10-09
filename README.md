@@ -92,7 +92,7 @@ There is no network code at all. Nothing you read leaves the machine. Settings a
 | Ctrl+Q | quit |
 
 ## Download
-Prebuilt Linux x86_64: grab `omabiblia-0.1.0-linux-x86_64.tar.gz` from [Releases](https://github.com/freeParameterized/omabiblia/releases), unpack it, and run `./run.sh`. It needs OpenGL 3.3 and Wayland or X11; no install step.
+Prebuilt Linux x86_64: grab `omabiblia-<version>-linux-x86_64.tar.gz` from the latest [Release](https://github.com/freeParameterized/omabiblia/releases), unpack it, and run `./run.sh`. It needs OpenGL 3.3 and Wayland or X11; no install step.
 
 ## Build and install
 ```sh
