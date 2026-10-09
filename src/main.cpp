@@ -30,6 +30,7 @@
 #include "render.h"
 #include "scene.h"
 #include "screen.h"
+#include "shell.h"
 #include "theme.h"
 #include "wl_input.h"
 
@@ -81,8 +82,9 @@ struct App {
     std::vector<std::unique_ptr<Scene>> scenes;
     int scene = 0;
     std::unique_ptr<Ctx> ctx;
-    std::vector<std::string> termLines;
-    std::string termInput;
+    std::unique_ptr<BibleShell> shell;
+    struct Shown { int b = -1, c = 0, v = 0, tr = -1; bool ch = false;
+                   bool operator==(const Shown& o) const { return b == o.b && c == o.c && v == o.v && tr == o.tr && ch == o.ch; } } shown;
     unsigned randomCounter = 0;
 
     float hudA = 1;
@@ -106,6 +108,15 @@ struct App {
         ctx->ref = r;
         ctx->refSerial++;
         if (sound) chip.play(Sfx::Select);
+        syncShell();
+    }
+    // the terminal's scrollback records every reading, in order, while the hacker scene is up
+    void syncShell(bool force = false) {
+        if (!shell || !scenes[scene]->wantsTyping()) return;
+        Shown cur{ctx->ref.book, ctx->ref.chapter, ctx->chapter ? 0 : ctx->ref.verse, bible.current(), ctx->chapter};
+        if (!force && cur == shown) return;
+        shown = cur;
+        shell->showReading(ctx->ref, ctx->chapter);
     }
     void today() { randomCounter = 0; setRef(bible.verseOfDay(todayIso())); }
     void random() {
@@ -121,6 +132,7 @@ struct App {
         ctx->refSerial++;
         chip.setSong(scenes[scene]->song());
         chip.play(Sfx::Whoosh);
+        syncShell();
     }
     void setTranslation(int i) {
         if (bible.select(i)) {
@@ -131,48 +143,27 @@ struct App {
         } else chip.play(Sfx::Error);
     }
 
-    // ------------------------------------------------------------------ hacker prompt
-    void say(const std::string& s) { termLines.push_back(s); if (termLines.size() > 200) termLines.erase(termLines.begin()); }
-    void exec(std::string cmd) {
-        while (!cmd.empty() && cmd.back() == ' ') cmd.pop_back();
-        while (!cmd.empty() && cmd.front() == ' ') cmd.erase(cmd.begin());
-        if (cmd.empty()) return;
-        say("$ " + cmd);
-        std::string head = cmd.substr(0, cmd.find(' ')), arg = cmd.find(' ') == std::string::npos ? "" : cmd.substr(cmd.find(' ') + 1);
-        for (auto& c : head) c = (char)std::tolower((unsigned char)c);
-        if (head == "help" || head == "?") {
-            say("  <book> <ch>[:<v>]  read (e.g. john 3:16, ps 23, 1 cor 13)");
-            say("  random | today | chapter | verse | next | prev");
-            say("  search <words>     find in the current translation");
-            say("  tr <code>          translation: " + trList());
-            say("  scene <1-5>        crawl link command hacker retro");
-            say("  clear              clear the screen");
-        } else if (head == "clear" || head == "cls") termLines.clear();
-        else if (head == "random") random();
-        else if (head == "today") today();
-        else if (head == "chapter") { ctx->chapter = true; ctx->refSerial++; }
-        else if (head == "verse") { ctx->chapter = false; ctx->refSerial++; }
-        else if (head == "next") setRef(bible.step(ctx->ref, 1));
-        else if (head == "prev") setRef(bible.step(ctx->ref, -1));
-        else if (head == "tr") {
-            std::string a = arg;
-            for (auto& c : a) c = (char)std::toupper((unsigned char)c);
-            int found = -1;
-            for (int i = 0; i < (int)bible.translations().size(); i++) if (bible.translations()[i].code == a) found = i;
-            if (found < 0) say("  unknown translation. have: " + trList()); else { setTranslation(found); say("  -> " + bible.tr().name); }
-        } else if (head == "scene") {
-            int n = std::atoi(arg.c_str());
-            if (n >= 1 && n <= 5) setScene(n - 1); else say("  scene 1-5");
-        } else if (head == "search" || head == "grep") {
-            auto hs = bible.search(arg, 9);
-            if (hs.empty()) say("  no match");
-            for (auto& h : hs) say("  " + bible.refString(h.ref) + "  " + h.text.substr(0, 70) + (h.text.size() > 70 ? "..." : ""));
-            if (!hs.empty()) setRef(hs[0].ref);
-        } else {
-            Ref r;
-            if (bible.parseRef(cmd, r)) { setRef(r); ctx->chapter = cmd.find(':') == std::string::npos && std::count(cmd.begin(), cmd.end(), ' ') >= 1 ? ctx->chapter : false; }
-            else { say("  command not found: " + head + "  (try help)"); chip.play(Sfx::Error); }
-        }
+    // ------------------------------------------------------------------ hacker prompt (bibsh)
+    void initShell(bool shot, const char* host) {
+        shell = std::make_unique<BibleShell>(bible);
+        const char* u = std::getenv("USER");
+        shell->user = shot || !u ? "reader" : u;
+        shell->host = host;
+        for (auto& c : shell->host) c = (char)std::tolower((unsigned char)c);
+        shell->open = [this](Ref r, bool chapter) { ctx->chapter = chapter; setRef(r); };
+        shell->random = [this] { random(); };
+        shell->today = [this] { today(); };
+        shell->next = [this] { setRef(bible.step(ctx->ref, 1)); };
+        shell->prev = [this] { setRef(bible.step(ctx->ref, -1)); };
+        shell->scene = [this](int i) { setScene(i); };
+        shell->chapterMode = [this](bool on) { ctx->chapter = on; ctx->refSerial++; };
+        shell->translations = [this] { return trList(); };
+        shell->translation = [this](const std::string& code) {
+            for (int i = 0; i < (int)bible.translations().size(); i++)
+                if (bible.translations()[i].code == code) { shell->echoNext = false; setTranslation(i); return true; }
+            return false;
+        };
+        ctx->shell = shell.get();
     }
     std::string trList() {
         std::string s;
@@ -441,6 +432,7 @@ struct App {
             {"/ or Ctrl+F", "search"}, {"N", "next translation"}, {"M", "music on/off"}, {"+ / -", "text size"},
             {"Drag / wheel", "rotate / zoom the 3D screen (double-click resets)"}, {"V", "cinematic: the screen swings through depth"},
             {"F", "flat (2D) / floating 3D screen"}, {"P", "pop the screen out onto the desktop / back in"},
+            {"Hacker scene", "bibsh: ls, cd, cat jer/29:11, grep ... | head; Tab, Up/Down history, help"},
             {"Super+1..9", "pop-out lives on a workspace; Super+O pins it to all of them"}, {"F11", "fullscreen"}, {"H", "hide the bar"},
             {"Esc", "close panels (Ctrl+Q quits)"}};
         if (ImGui::BeginTable("keys", 2)) {
@@ -472,8 +464,21 @@ struct App {
         switch (k) {
             case GLFW_KEY_ESCAPE:
                 if (showBooks || showSearch || showSettings || showHelp) { showBooks = showSearch = showSettings = showHelp = false; chip.play(Sfx::Back); }
-                else if (typing && !termInput.empty()) termInput.clear();
+                else if (typing && !shell->input.empty()) shell->input.clear();
                 return;
+            default: break;
+        }
+        if (typing) {
+            // a shell: Up/Down = history, Tab = complete, Ctrl+L clear, Ctrl+C cancel; arrows only browse when the line is empty
+            if (ctrl && k == GLFW_KEY_L) { shell->clear(); return; }
+            if (ctrl && k == GLFW_KEY_C) { shell->cancel(); return; }
+            if (ctrl && k == GLFW_KEY_U) { shell->input.clear(); return; }
+            if (k == GLFW_KEY_UP) { shell->historyUp(); chip.play(Sfx::Key); return; }
+            if (k == GLFW_KEY_DOWN) { shell->historyDown(); chip.play(Sfx::Key); return; }
+            if (k == GLFW_KEY_TAB && !shell->input.empty()) { shell->complete(); chip.play(Sfx::Blip); return; }
+            if ((k == GLFW_KEY_LEFT || k == GLFW_KEY_RIGHT) && !shell->input.empty()) return;
+        }
+        switch (k) {
             case GLFW_KEY_TAB: setScene(scene + (shift ? -1 : 1)); return;
             case GLFW_KEY_LEFT: setRef(bible.step(ctx->ref, -1)); return;
             case GLFW_KEY_RIGHT: setRef(bible.step(ctx->ref, 1)); return;
@@ -485,8 +490,12 @@ struct App {
             default: break;
         }
         if (typing) {
-            if (k == GLFW_KEY_ENTER || k == GLFW_KEY_KP_ENTER) { std::string c = termInput; termInput.clear(); exec(c); }
-            else if (k == GLFW_KEY_BACKSPACE && !termInput.empty()) { termInput.pop_back(); chip.play(Sfx::Key); }
+            if (k == GLFW_KEY_ENTER || k == GLFW_KEY_KP_ENTER) {
+                std::string c = shell->input;
+                shell->input.clear();
+                shell->exec(c);
+                if (!shell->echoNext) syncShell(true);   // the command asked for a reading: show it even if unchanged
+            } else if (k == GLFW_KEY_BACKSPACE && !shell->input.empty()) { shell->input.pop_back(); chip.play(Sfx::Key); }
             return;   // letters go to the prompt via the char callback
         }
         switch (k) {
@@ -509,8 +518,8 @@ struct App {
         }
     }
     void character(unsigned cp) {
-        if (!scenes[scene]->wantsTyping() || cp < 32 || cp > 126 || termInput.size() > 120) return;
-        termInput += (char)cp;
+        if (!scenes[scene]->wantsTyping() || cp < 32 || cp > 126 || shell->input.size() > 160) return;
+        shell->input += (char)cp;
         chip.play(Sfx::Key);
     }
     int wx = 0, wy = 0, ww = 1280, wh = 800;
@@ -547,6 +556,7 @@ void onScroll(GLFWwindow*, double, double dy) {
 int main(int argc, char** argv) {
     // --shot out.png [--scene N] [--size WxH] [--seconds S] [--ref "john 3:16"] [--chapter] [--ui] : render hidden, save, exit
     std::string shotPath, shotRef, shotTr;
+    std::vector<std::string> shotCmds;
     int shotScene = -1, shotW = 1600, shotH = 1000;
     float shotSeconds = 2.5f;
     bool shotChapter = false, shotUi = false;
@@ -561,6 +571,7 @@ int main(int argc, char** argv) {
         else if (a == "--seconds" && i + 1 < argc) shotSeconds = (float)std::atof(argv[++i]);
         else if (a == "--ref" && i + 1 < argc) shotRef = argv[++i];
         else if (a == "--tr" && i + 1 < argc) shotTr = argv[++i];
+        else if (a == "--cmd" && i + 1 < argc) shotCmds.push_back(argv[++i]);
         else if (a == "--chapter") shotChapter = true;
         else if (a == "--ui") shotUi = true;
         else if (a == "--popout") popoutArg = true;
@@ -634,8 +645,7 @@ int main(int argc, char** argv) {
     gethostname(host, sizeof host);
     app.ctx = std::make_unique<Ctx>(Ctx{app.r, app.fonts, app.theme.pal, app.bible, app.chip});
     app.ctx->hostname = shot ? "omarchy" : host;      // screenshots never show the real machine name
-    app.ctx->termLines = &app.termLines;
-    app.ctx->termInput = &app.termInput;
+    app.initShell(shot, shot ? "omarchy" : host);
     app.loadPrefs();
     for (size_t i = 0; i < rest.size(); i++) {          // omabiblia [scene-number] [reference...]
         const std::string& a = rest[i];
@@ -654,7 +664,7 @@ int main(int argc, char** argv) {
         app.sp.yaw = shotYaw; app.sp.cinematic = false;
         if (shotUi) app.lastMouseMove = 1e9;
     }
-    app.say("omabiblia: offline reader. " + std::to_string(app.bible.translations().size()) + " translations on disk. type help");
+    app.shell->lines.push_back({TLine::Dim, "bibsh 0.1 - the Bible as a read-only filesystem, offline. " + std::to_string(app.bible.translations().size()) + " translations. try: ls, cat jer/29:11, help"});
     if (!shot) app.chip.start();
     RenderTarget shotRT;
     if (shot) { shotRT.ensure(shotW, shotH, false, true, false); g_defaultFbo = shotRT.fbo; }
@@ -662,6 +672,8 @@ int main(int argc, char** argv) {
     app.chip.setSong(app.scenes[app.scene]->song());
     app.chip.play(Sfx::Boot);
     app.scenes[app.scene]->enter(*app.ctx);
+    app.syncShell();
+    for (auto& c : shotCmds) { app.shell->exec(c); if (!app.shell->echoNext) app.syncShell(true); }
 
     double prev = glfwGetTime();
     double lastClick = -1;
@@ -701,6 +713,7 @@ int main(int argc, char** argv) {
         } else app.dragging = false;
         app.lastX = mx; app.lastY = my;
 
+        app.syncShell();
         // ---- scene into its texture ----
         Scene& sc = *app.scenes[app.scene];
         GLuint sceneTex;

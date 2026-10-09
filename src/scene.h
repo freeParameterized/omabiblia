@@ -10,6 +10,8 @@
 #include "render.h"
 #include "theme.h"
 
+class BibleShell;
+
 struct Fonts {
     Font body;      // book-face serif (EB Garamond)
     Font mono;      // the user's Omarchy font (falls back to Share Tech Mono)
@@ -32,9 +34,7 @@ struct Ctx {
     int w = 1600, h = 1000;  // target size in pixels
     float textScale = 1.0f;  // user text size
     std::string hostname;
-    // filled by the app for the hacker prompt
-    std::vector<std::string>* termLines = nullptr;
-    std::string* termInput = nullptr;
+    BibleShell* shell = nullptr;   // the hacker scene's shell (bibsh)
 };
 
 class Scene {

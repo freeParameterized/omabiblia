@@ -9,8 +9,25 @@ An offline Bible reader for Omarchy. You read on a floating 3D CRT screen, style
 | 1 | **Crawl** | The chapter rolls away on a tilted plane into deep space, over a slowly turning starfield. |
 | 2 | **Link** | A cyberspace grid to the horizon. The 66 books stand as wireframe data towers, height set by chapter count. The camera glides to the book you're reading and shows its verses on a holographic slab. |
 | 3 | **Space Command** | A tactical display. The Old Testament is the inner orbit and the New Testament the outer one, with a radar sweep and a target lock on the current book. |
-| 4 | **Hacker** | A phosphor terminal over digital rain made from the verse itself. The prompt is live: type `john 3:16`, `random`, `search love`, `tr bsb` or `help`. |
+| 4 | **Hacker** | A phosphor terminal over digital rain made from the verse itself, running **bibsh**, a real little shell (see below). |
 | 5 | **Retro** | A 320×200 synthwave sunset with parallax pixel mountains and a JRPG dialogue box that blips per letter, dithered to a chunky palette. |
+
+## bibsh: the Hacker terminal's shell
+The Bible is a read-only filesystem: `/` holds the 66 books (`gen` … `rev`), `/jer` holds Jeremiah's chapters, and `/jer/29` holds that chapter's verses.
+
+```sh
+cat jer/29:11            # read a verse; every scene follows what you cat
+cat jer/29:11-14         # a range
+cat jer/29               # the whole chapter
+cat jeremiah 29:11       # names, abbreviations (1cor, ps, prov) and jer.29.11 all work
+cd ps; ls; cat 23        # paths are relative once you cd in
+grep "lord is my" | head -n 3
+cat prov/3 | grep heart | wc -l
+random  today  next  prev  tr bsb  scene 1  history  clear  help
+```
+
+- **Keys:** Tab completes commands and books, Up/Down walks the history, Ctrl+L clears, and Ctrl+C cancels the line.
+- **Not a system shell:** nothing outside the Bible is reachable.
 
 ## The screen
 Every scene renders to a curved 3D CRT with bloom, scanlines, an aperture mask and chromatic aberration. It floats over your blurred Omarchy wallpaper and lights up the wallpaper around it.
@@ -88,9 +105,14 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j6
 - **Requirements:** a C++20 compiler, CMake, OpenGL 3.3, and the Wayland or X11 development headers.
 - **Vendored:** GLFW 3.4, Dear ImGui 1.92, miniaudio, stb.
 
+## Tests
+```sh
+ctest --test-dir build          # bibsh (39 checks against the real texts) + the chiptune synth
+```
+
 ## Headless screenshots (no window shown)
 ```sh
-./build/omabiblia --shot out.png --scene 2 --ref "john 3:16" [--chapter] [--size 1600x1000] [--seconds 5] [--yaw 0.5] [--ui] [--tr LSV] [--popout]
+./build/omabiblia --shot out.png --scene 2 --ref "john 3:16" [--chapter] [--size 1600x1000] [--seconds 5] [--yaw 0.5] [--ui] [--tr LSV] [--popout] [--cmd "cat jer/29:11" ...]
 ```
 
 ---

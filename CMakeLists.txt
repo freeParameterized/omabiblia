@@ -29,7 +29,7 @@ target_link_libraries(imgui PUBLIC glfw OpenGL::GL)
 add_executable(omabiblia
   src/main.cpp src/gl.cpp src/theme.cpp src/bible.cpp src/render.cpp src/audio.cpp src/screen.cpp
   src/scene_crawl.cpp src/scene_link.cpp src/scene_command.cpp src/scene_hacker.cpp src/scene_retro.cpp
-  src/wl_input.cpp)
+  src/wl_input.cpp src/shell.cpp)
 target_include_directories(omabiblia PRIVATE src thirdparty ${IMGUI_DIR})
 # Dev builds also look for data/ next to the source tree; release builds must not embed a local path.
 option(OMA_DEV_SOURCE_DIR "Let the binary find data/ in this source tree (dev builds)" ON)
@@ -40,6 +40,19 @@ target_link_libraries(omabiblia PRIVATE imgui glfw OpenGL::GL PkgConfig::WAYLAND
 target_compile_options(omabiblia PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 # audio.cpp carries miniaudio's implementation; keep its warnings out of ours
 set_source_files_properties(src/audio.cpp src/screen.cpp src/render.cpp PROPERTIES COMPILE_OPTIONS "-w")
+
+# tests: ctest --test-dir build   (no window, no audio device needed)
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(shell_test tests/shell_test.cpp src/shell.cpp src/bible.cpp)
+  target_include_directories(shell_test PRIVATE src)
+  add_test(NAME bibsh COMMAND shell_test ${CMAKE_SOURCE_DIR}/data)
+  add_executable(audio_test tests/audio_test.cpp src/audio.cpp)
+  target_include_directories(audio_test PRIVATE src thirdparty)
+  target_link_libraries(audio_test PRIVATE Threads::Threads dl m)
+  set_source_files_properties(tests/audio_test.cpp PROPERTIES COMPILE_OPTIONS "-w")
+  add_test(NAME chiptune COMMAND audio_test WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
 
 install(TARGETS omabiblia RUNTIME DESTINATION bin)
 install(DIRECTORY data assets DESTINATION share/omabiblia)
