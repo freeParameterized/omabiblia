@@ -31,7 +31,11 @@ add_executable(omabiblia
   src/scene_crawl.cpp src/scene_link.cpp src/scene_command.cpp src/scene_hacker.cpp src/scene_retro.cpp
   src/wl_input.cpp)
 target_include_directories(omabiblia PRIVATE src thirdparty ${IMGUI_DIR})
-target_compile_definitions(omabiblia PRIVATE OMA_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+# Dev builds also look for data/ next to the source tree; release builds must not embed a local path.
+option(OMA_DEV_SOURCE_DIR "Let the binary find data/ in this source tree (dev builds)" ON)
+if(OMA_DEV_SOURCE_DIR)
+  target_compile_definitions(omabiblia PRIVATE OMA_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+endif()
 target_link_libraries(omabiblia PRIVATE imgui glfw OpenGL::GL PkgConfig::WAYLAND Threads::Threads dl m)
 target_compile_options(omabiblia PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 # audio.cpp carries miniaudio's implementation; keep its warnings out of ours

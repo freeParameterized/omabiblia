@@ -74,6 +74,9 @@ There is no network code at all. Nothing you read leaves the machine. Settings a
 | Esc | close panels |
 | Ctrl+Q | quit |
 
+## Download
+Prebuilt Linux x86_64: grab `omabiblia-0.1.0-linux-x86_64.tar.gz` from [Releases](https://github.com/freeParameterized/omabiblia/releases), unpack it, and run `./run.sh`. It needs OpenGL 3.3 and Wayland or X11; no install step.
+
 ## Build and install
 ```sh
 ./install.sh            # builds, installs to ~/.local, adds "Omabiblia" to the Omarchy app launcher
@@ -81,6 +84,7 @@ There is no network code at all. Nothing you read leaves the machine. Settings a
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j6
 ./build/omabiblia [scene 1-5] [reference]      # e.g. ./build/omabiblia 3 psalm 23
 ```
+- **Release builds:** add `-DOMA_DEV_SOURCE_DIR=OFF` so no local path is embedded.
 - **Requirements:** a C++20 compiler, CMake, OpenGL 3.3, and the Wayland or X11 development headers.
 - **Vendored:** GLFW 3.4, Dear ImGui 1.92, miniaudio, stb.
 
