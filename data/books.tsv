@@ -1,0 +1,66 @@
+1	Genesis	Gen	GEN	OT	50
+2	Exodus	Exod	EXO	OT	40
+3	Leviticus	Lev	LEV	OT	27
+4	Numbers	Num	NUM	OT	36
+5	Deuteronomy	Deut	DEU	OT	34
+6	Joshua	Josh	JOS	OT	24
+7	Judges	Judg	JDG	OT	21
+8	Ruth	Ruth	RUT	OT	4
+9	1 Samuel	1 Sam	1SA	OT	31
+10	2 Samuel	2 Sam	2SA	OT	24
+11	1 Kings	1 Kgs	1KI	OT	22
+12	2 Kings	2 Kgs	2KI	OT	25
+13	1 Chronicles	1 Chr	1CH	OT	29
+14	2 Chronicles	2 Chr	2CH	OT	36
+15	Ezra	Ezra	EZR	OT	10
+16	Nehemiah	Neh	NEH	OT	13
+17	Esther	Esth	EST	OT	10
+18	Job	Job	JOB	OT	42
+19	Psalms	Ps	PSA	OT	150
+20	Proverbs	Prov	PRO	OT	31
+21	Ecclesiastes	Eccl	ECC	OT	12
+22	Song of Solomon	Song	SNG	OT	8
+23	Isaiah	Isa	ISA	OT	66
+24	Jeremiah	Jer	JER	OT	52
+25	Lamentations	Lam	LAM	OT	5
+26	Ezekiel	Ezek	EZK	OT	48
+27	Daniel	Dan	DAN	OT	12
+28	Hosea	Hos	HOS	OT	14
+29	Joel	Joel	JOL	OT	3
+30	Amos	Amos	AMO	OT	9
+31	Obadiah	Obad	OBA	OT	1
+32	Jonah	Jonah	JON	OT	4
+33	Micah	Mic	MIC	OT	7
+34	Nahum	Nah	NAM	OT	3
+35	Habakkuk	Hab	HAB	OT	3
+36	Zephaniah	Zeph	ZEP	OT	3
+37	Haggai	Hag	HAG	OT	2
+38	Zechariah	Zech	ZEC	OT	14
+39	Malachi	Mal	MAL	OT	4
+40	Matthew	Matt	MAT	NT	28
+41	Mark	Mark	MRK	NT	16
+42	Luke	Luke	LUK	NT	24
+43	John	John	JHN	NT	21
+44	Acts	Acts	ACT	NT	28
+45	Romans	Rom	ROM	NT	16
+46	1 Corinthians	1 Cor	1CO	NT	16
+47	2 Corinthians	2 Cor	2CO	NT	13
+48	Galatians	Gal	GAL	NT	6
+49	Ephesians	Eph	EPH	NT	6
+50	Philippians	Phil	PHP	NT	4
+51	Colossians	Col	COL	NT	4
+52	1 Thessalonians	1 Thess	1TH	NT	5
+53	2 Thessalonians	2 Thess	2TH	NT	3
+54	1 Timothy	1 Tim	1TI	NT	6
+55	2 Timothy	2 Tim	2TI	NT	4
+56	Titus	Titus	TIT	NT	3
+57	Philemon	Phlm	PHM	NT	1
+58	Hebrews	Heb	HEB	NT	13
+59	James	Jas	JAS	NT	5
+60	1 Peter	1 Pet	1PE	NT	5
+61	2 Peter	2 Pet	2PE	NT	3
+62	1 John	1 John	1JN	NT	5
+63	2 John	2 John	2JN	NT	1
+64	3 John	3 John	3JN	NT	1
+65	Jude	Jude	JUD	NT	1
+66	Revelation	Rev	REV	NT	22
